@@ -431,7 +431,7 @@
                 item.style.transform = `translateZ(${z}px) rotate(${rotation}deg)`;
                 if(Math.random() > 0.7) item.style.filter = `blur(4px)`;
                 const img = document.createElement('img');
-                img.src = src; img.onerror = () => img.src = "https://via.placeholder.com/400";
+                img.src = "Images/" + src; img.onerror = () => img.src = "https://via.placeholder.com/400";
                 item.appendChild(img); 
                 collage.appendChild(item);
             }
@@ -455,7 +455,7 @@
                     const frame = document.createElement('div');
                     frame.className = `photo-frame ${data.isHero ? 'hero' : ''}`;
                     const img = document.createElement('img');
-                    img.src = src; img.onerror = () => img.src = "https://via.placeholder.com/800";
+                    img.src = "Images/" + src; img.onerror = () => img.src = "https://via.placeholder.com/800";
                     frame.appendChild(img); 
                     imgSide.appendChild(frame);
                     frames.push(frame);
