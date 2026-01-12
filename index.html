@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10 տարի հավատարիմ ծառայություն</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Noto+Sans+Armenian:wght@300;400;700&display=swap');
+
+        :root {
+            --bg-color: #fdfbf7; 
+            --text-dark: #1a1a1a;
+            --text-sub: #444444;
+            --accent-sepia: #8d6e63;
+            --safe-margin: 50px;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            font-family: 'Noto Sans Armenian', 'Inter', sans-serif;
+        }
+
+        #viewport {
+            width: 100vw;
+            height: 100vh;
+            perspective: 2000px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-color);
+        }
+
+        #world {
+            position: absolute;
+            transform-style: preserve-3d;
+            will-change: transform;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .canvas-scene {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: hidden;
+            box-sizing: border-box;
+            left: -50vw;
+            top: -50vh;
+            overflow: visible;
+            opacity: 0;
+        }
+
+        .scene-content {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: var(--safe-margin); 
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+
+        .image-side {
+            width: 65%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            transform-style: preserve-3d;
+            overflow: visible;
+        }
+
+        .text-side {
+            width: 35%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: left;
+            opacity: 0;
+            transform: translateX(40px);
+            overflow: visible;
+        }
+
+        .photo-frame {
+            position: relative;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.08);
+            border: 15px solid #fff;
+            background: #fff;
+            overflow: visible; 
+            max-width: 100%;
+            max-height: calc(100vh - (var(--safe-margin) * 2)); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(1.05); 
+        }
+
+        .photo-frame img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .photo-frame.hero {
+            max-height: calc(100vh - 120px);
+            width: 55vw;
+        }
+
+        #intro-collage {
+            position: absolute;
+            width: 30000px; 
+            height: 20000px;
+            left: -15000px;
+            top: -10000px;
+            transform-style: preserve-3d;
+            overflow: visible;
+            opacity: 0.3; 
+        }
+
+        .collage-item {
+            position: absolute;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 6px solid #fff;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .collage-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(0.05);
+        }
+
+        .main-text {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.1rem, 3vh, 1.6rem); 
+            line-height: 1.4;
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        .sub-text {
+            font-size: clamp(1rem, 2.5vh, 1.4rem);
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--text-sub);
+            font-family: 'Inter', sans-serif;
+            font-style: italic;
+        }
+
+        .divider {
+            width: 80px;
+            height: 2px;
+            background: var(--accent-sepia);
+            margin: 2vh 0;
+            opacity: 0.6;
+        }
+
+        #ui-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+            transition: opacity 1s ease;
+        }
+
+        .start-btn {
+            padding: 1.2rem 4rem;
+            border: 2px solid var(--text-dark);
+            background: transparent;
+            color: var(--text-dark);
+            font-family: 'Noto Sans Armenian', sans-serif;
+            font-size: 1.6rem;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            border-radius: 2px;
+        }
+
+        .start-btn:hover {
+            background: var(--text-dark);
+            color: white;
+            letter-spacing: 2px;
+        }
+
+        #video-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            gap: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            z-index: 3000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        #video-controls.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: scale 0.2s ease;
+        }
+
+        #progress-container {
+            flex-grow: 1;
+            height: 6px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        #progress-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--text-dark);
+            border-radius: 3px;
+        }
+
+        .time-display {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+            min-width: 80px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #final-message {
+            position: fixed;
+            inset: 0;
+            background: rgba(253, 251, 247, 0.98);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            opacity: 0;
+            z-index: 2000;
+            pointer-events: none;
+            backdrop-filter: blur(8px);
+            overflow-y: auto;
+        }
+
+        .final-verse {
+            font-family: 'Noto Sans Armenian', 'Playfair Display', serif;
+            color: var(--accent-sepia);
+            margin-top: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(141, 110, 99, 0.2);
+            max-width: 800px;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--accent-sepia);
+            border-radius: 50%;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <div class="text-center px-6">
+            <h1 class="text-5xl md:text-6xl font-serif mb-6 tracking-tight">10 տարի միասին</h1>
+            <p class="mb-12 opacity-60 tracking-[0.3em] uppercase text-xs font-semibold">Հուշերի ճամփորդություն</p>
+            <button class="start-btn" onclick="startExperience()">Սկսել դիտումը</button>
+        </div>
+    </div>
+
+    <div id="viewport">
+        <div id="world"></div>
+    </div>
+
+    <!-- Video Controller UI -->
+    <div id="video-controls">
+        <button id="play-pause-btn" class="control-btn" onclick="togglePlayPause()">
+            <svg id="play-icon" style="display:none;" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <div id="progress-container" onclick="seek(event)">
+            <div id="progress-bar"></div>
+        </div>
+        <div class="time-display">
+            <span id="current-time">0:00</span> / 3:55
+        </div>
+    </div>
+
+    <div id="final-message">
+        <h2 class="font-serif text-2xl md:text-4xl mb-4 leading-tight px-6">
+            Շնորհակալություն 10 տարվա սիրո, նվիրվածության և հավատարիմ ծառայության համար:
+        </h2>
+        <p class="font-serif italic text-lg md:text-2xl opacity-70 mb-4 px-6">
+            Թեև դուք տեղափոխվում եք այլ ժողով, դուք միշտ կմնաք մեր սրտերում:
+        </p>
+        
+        <div class="final-verse px-6">
+            <p class="text-lg md:text-xl italic mb-3 leading-relaxed">
+                «Թող Եհովան օրհնի ու պահպանի ձեզ։ Թող Եհովայի երեսի լույսը շողա ձեզ վրա, և թող նա բարեհաճ լինի ձեր հանդեպ։ Թող Եհովան բարություն դրսևորի ձեր հանդեպ և խաղաղություն տա ձեզ»։
+            </p>
+            <p class="text-sm md:text-md font-bold mb-4">(Թվեր 6:24-26)</p>
+            
+            <div class="divider mx-auto"></div>
+            
+            <p class="text-md md:text-lg italic mb-3 leading-relaxed">
+                “May Jehovah bless you and safeguard you. May Jehovah make his face shine upon you, and may he favor you. May Jehovah lift up his face toward you and grant you peace.”
+            </p>
+            <p class="text-xs md:text-sm font-bold opacity-60">(Numbers 6:24-26)</p>
+        </div>
+
+        <p class="text-sm md:text-md font-semibold tracking-widest uppercase mt-8 opacity-40">Սիրով՝ ամբողջ ժողովից / With love from the whole congregation</p>
+    </div>
+
+    <script>
+        const songSrc = "sjjc_REA_154.mp3";
+        const audio = new Audio(songSrc);
+        audio.preload = "auto";
+        let mainTimeline;
+        const totalDuration = 235; 
+
+        const manualStory = [
+            { images: ["1.jpg"], text: "Սեմ և Դայանա, եկեք միասին հիշենք անցած տարիները։", sub: "Sam and Diana, let us look back together at the years we spent as one.", isHero: true },
+            { images: ["2.jpg"], text: "Տասը տարիների անջնջելի հիշողություններ։", sub: "Ten years of indelible and cherished memories." },
+            { images: ["3.jpg"], text: "Դուք դարձաք մեր հոգևոր ընտանիքի անբաժան մասը։", sub: "You became an inseparable part of our spiritual family." },
+            { images: ["3-1.jpg", "4.jpg"], text: "Յուրաքանչյուր ժպիտ ու ջերմ խոսք լուսավորեց մեր անցած ճանապարհը։", sub: "Every smile and warm word illuminated the path we traveled." },
+            { images: ["5.jpg"], text: "Շինարարության մեջ բարդ աշխատանքը դարձավ թեթև ձեր օգնությամբ։", sub: "In construction, hard labor became light through your constant help." },
+            { images: ["6.jpg", "6-1.jpg"], text: "Խոհանոցում էլ սերն էր գլխավոր բաղադրիչը՝ մեր ռահվիրաներին հոգ տանելիս։", sub: "In the kitchen too, love was the secret ingredient while caring for the pioneers." },
+            { images: ["7.jpg"], text: "Մեզ ջերմացնում էիք անգամ ձմռան սառը օրերին։", sub: "You kept us warm even during the coldest winter days." },
+            { images: ["8.jpg"], text: "Հանգստացնում էիք բեմ բարձրանալուց առաջ։", sub: "You calmed our spirits before we stepped onto the stage." },
+            { images: ["9.jpg"], text: "Մաքրության ծառայության մեջ՝ խոնարհ ու անխոնջ։", sub: "Humble and tireless in the cleaning service." },
+            { images: ["10.jpg"], text: "Միասին համաժողովի ամեն մի պահը դարձավ թանկարժեք հուշ բոլորիս համար։", sub: "Together, every convention moment became a precious memory for all of us." },
+            { images: ["11.jpg"], text: "Միշտ մեր սիրելի քույրերի հետ, միասնության մեջ։", sub: "Always standing in unity with our beloved sisters." },
+            { images: ["12.jpg"], text: "Կապույտ ձեռնոցներով ու մեծ սրտով՝ մաքրությունը դարձրիք հաճելի ծառայություն։", sub: "With blue gloves and big hearts, you turned cleaning into a joyful service." },
+            { images: ["13.jpg"], text: "Բալահովիտի արևի տակ՝ միշտ ուրախ միասին։", sub: "Always happy together under the bright sun of Balahovit." },
+            { images: ["14.jpg", "14-1.jpg"], text: "Տարիները սահեցին, բայց ժամանցի հուշերը մնացին մեր սրտերում։", sub: "The years slipped by, but the memories of our leisure stay in our hearts." },
+            { images: ["15.jpg", "15-1.jpg"], text: "Թե՛ ամառվա շոգին և թե՛ ձմռան ցրտին դուք մեր կողքին եք եղել։", sub: "Whether in summer heat or winter frost, you have always been by our side." },
+            { images: ["16.jpg"], text: "Վարդագույն տրամադրություն եք փոխանցել մեզ միշտ։", sub: "You have always shared a vibrant and joyful spirit with us." },
+            { images: ["16-1.jpg"], text: "Սեր եք տվել բոլորիս։", sub: "You have given love to every single one of us." },
+            { images: ["17.jpg", "17-2.jpg"], text: "Այս խմբային նկարները մեր հոգևոր հարստության ու սիրո վկայությունն են։", sub: "These group photos testify to our spiritual wealth and shared love." },
+            { images: ["18.jpg", "18-1.jpg"], text: "Ձեր հյուրասիրության սեղանը միշտ բաց էր բոլորիս համար։", sub: "Your table of hospitality was always open to each of us." },
+            { images: ["19.jpg"], text: "Միասին վայելած ներկայացումներն ու արվեստը ջերմացրին մեր հոգիները։", sub: "Performances and art enjoyed together warmed our very souls." },
+            { images: ["20.jpg"], text: "Ռահվիրաների հանդիպմանը ձեր ներկայությունը քաջալերանք էր։", sub: "Your presence at the pioneer meetings was a spark of encouragement." },
+            { images: ["21.jpg"], text: "Անգամ կանգառում, ցրտին սպասելը ձեզ հետ հաճելի էր։", sub: "Even waiting at the stop in the cold was pleasant by your side." },
+            { images: ["22.jpg"], text: "Երեցների բանակում լինելով՝ միասին օգնեցիք մեզ ամեն հարցում։", sub: "Serving in the body of elders, you helped us in every way possible." },
+            { images: ["23.jpg"], text: "Ծառայության մեջ թողած ձեր օրինակը դեռ երկար կհիշենք։", sub: "We will long remember the example you set in the ministry." },
+            { images: ["24.jpg"], text: "Ձյունը մաքրելիս էլ հոգ էիք տանում, որ չսայթակենք։", sub: "Even while clearing snow, you took care so that we wouldn't slip." },
+            { images: ["25.jpg", "25-1.jpg"], text: "Մեր երեխաների համար դուք դարձաք նրանց առաջին ընկերները։", sub: "For our children, you became their very first friends." },
+            { images: ["26.jpg", "26-1.jpg"], text: "Ձեր գրկում երեխաները միշտ գտել են իրենց ապահով տեղը։", sub: "In your arms, children always found their safe place." },
+            { images: ["27.jpg", "27-1.jpg"], text: "Դուք պահեցիք փոքրիկներին, որ մենք վայելենք հոգևոր սնունդը։", sub: "You watched over the little ones so we could enjoy spiritual food." },
+            { images: ["28.jpg", "28-1.jpg"], text: "Մանրուց սովորեցրիք երեխաներին աշխատել։", sub: "You taught the children the value of work from a young age." },
+            { images: ["29.jpg"], text: "Պարի դասերը Արտյոմին՝ ուրախության պահերից մեկը։", sub: "Dance lessons for Artyom—one of our brightest moments of joy." },
+            { images: ["30.jpg"], text: "Փոքրիկ Դավիթի հետ այդ անկեղծ սելֆին կմնա մեր սրտերում՝ որպես մաքուր սեր։", sub: "That sincere selfie with little Davit will stay in our hearts as pure love." },
+            { images: ["32.jpg"], text: "Մկրտության ժամանակ ձեր օգնության ձեռքը խորհրդանիշն էր ձեր ողջ ծառայության։", sub: "Your helping hand at the baptism was the symbol of your entire service." },
+            { images: ["33.jpg", "33-1.jpg"], text: "Այս սելֆիները մեր վերջին կանգառն են այս ճամփորդության մեջ...։", sub: "These selfies are our final stop in this journey of memories." },
+            { images: ["34.jpg"], text: "Մենք ձեզ սիրում ենք անսահման. շնորհակալ ենք, որ մեր կյանքը դարձրիք ավելի լուսավոր։", sub: "We love you boundlessly. Thank you for making our lives so much brighter." }
+        ];
+
+        const world = document.getElementById('world');
+        const scenes = [];
+
+        function init() {
+            gsap.set(world, { z: -9000, x: 0, y: 0, autoAlpha: 0 });
+            
+            const collage = document.createElement('div');
+            collage.id = 'intro-collage';
+            world.appendChild(collage); 
+            
+            const allImg = [...new Set(manualStory.flatMap(s => s.images))];
+            for(let i=0; i<300; i++) {
+                const src = allImg[i % allImg.length];
+                const item = document.createElement('div');
+                item.className = 'collage-item';
+                const x = (Math.random() - 0.5) * 28000;
+                const y = (Math.random() - 0.5) * 18000;
+                const z = (Math.random() - 0.5) * 1500;
+                const rotation = (Math.random() - 0.5) * 20;
+                const size = 350 + Math.random() * 300;
+                item.style.width = `${size}px`;
+                item.style.height = `${size * 0.75}px`;
+                item.style.left = `calc(50% + ${x}px)`;
+                item.style.top = `calc(50% + ${y}px)`;
+                item.style.transform = `translateZ(${z}px) rotate(${rotation}deg)`;
+                if(Math.random() > 0.7) item.style.filter = `blur(4px)`;
+                const img = document.createElement('img');
+                img.src = src; img.onerror = () => img.src = "https://via.placeholder.com/400";
+                item.appendChild(img); 
+                collage.appendChild(item);
+            }
+
+            const step = 1200; 
+            manualStory.forEach((data, i) => {
+                const scene = document.createElement('div');
+                scene.className = 'canvas-scene';
+                const row = Math.floor(i / 6);
+                let col = i % 6;
+                if (row % 2 === 1) col = 5 - col;
+                const pos = { x: col * step, y: row * step, z: 0 };
+                scene.style.transform = `translate3d(${pos.x}px, ${pos.y}px, ${pos.z}px)`;
+                
+                const content = document.createElement('div');
+                content.className = 'scene-content';
+                const imgSide = document.createElement('div');
+                imgSide.className = 'image-side';
+                const frames = [];
+                data.images.forEach(src => {
+                    const frame = document.createElement('div');
+                    frame.className = `photo-frame ${data.isHero ? 'hero' : ''}`;
+                    const img = document.createElement('img');
+                    img.src = src; img.onerror = () => img.src = "https://via.placeholder.com/800";
+                    frame.appendChild(img); 
+                    imgSide.appendChild(frame);
+                    frames.push(frame);
+                });
+                const txtSide = document.createElement('div');
+                txtSide.className = 'text-side';
+                txtSide.innerHTML = `
+                    <h2 class="main-text">${data.text}</h2>
+                    <div class="divider"></div>
+                    <p class="sub-text">${data.sub}</p>
+                `;
+                content.appendChild(imgSide); 
+                content.appendChild(txtSide);
+                scene.appendChild(content); 
+                world.appendChild(scene);
+                
+                if (i === 0) {
+                    gsap.set(scene, { opacity: 1 });
+                }
+                
+                scenes.push({ el: scene, txt: txtSide, frames, pos: pos });
+            });
+
+            for(let i=0; i<80; i++) {
+                const p = document.createElement('div'); p.className = 'particle';
+                p.style.width = '3px'; p.style.height = '3px';
+                p.style.left = (Math.random()*40000-20000)+'px'; p.style.top = (Math.random()*40000-20000)+'px';
+                p.style.transform = `translateZ(${(Math.random()*8000-4000)}px)`;
+                world.appendChild(p);
+            }
+
+            gsap.to(world, { autoAlpha: 1, duration: 1, delay: 0.5 });
+        }
+
+        function startExperience() {
+            gsap.to('#ui-overlay', { opacity: 0, duration: 1.2, ease: "sine.inOut", onComplete: () => {
+                document.getElementById('ui-overlay').style.display = 'none';
+                audio.play().catch(() => console.warn("Interaction needed."));
+                document.getElementById('video-controls').classList.add('visible');
+                
+                gsap.set('#intro-collage', { opacity: 1 });
+                runTimeline();
+            }});
+        }
+
+        function runTimeline() {
+            mainTimeline = gsap.timeline({
+                onUpdate: () => { updateProgressBar(); syncAudio(); }
+            });
+            const TOTAL_SECONDS = 235; 
+            const INTRO_STEER = 12;
+            const OUTRO = 10;
+            const HOLD = 5; 
+            const journeyTime = TOTAL_SECONDS - OUTRO;
+            const moveDuration = (journeyTime - INTRO_STEER - (scenes.length * HOLD)) / (scenes.length - 1);
+
+            scenes.forEach((scene, i) => {
+                const startTime = i === 0 ? 0 : INTRO_STEER + ((i - 1) * (moveDuration + HOLD)) + HOLD;
+                const transitionTime = i === 0 ? INTRO_STEER : moveDuration;
+
+                mainTimeline.to(world, {
+                    x: -scene.pos.x, y: -scene.pos.y, z: -scene.pos.z, 
+                    duration: transitionTime, ease: "sine.inOut",
+                    onStart: () => {
+                        scenes.forEach((s, idx) => {
+                            gsap.to(s.el, { opacity: (idx === i ? 1 : 0.05), duration: 1.5 });
+                        });
+                        if(i === 0) gsap.to('#intro-collage', { opacity: 0.2, duration: 8 });
+                    }
+                }, startTime);
+
+                const focusStartTime = startTime + transitionTime;
+                mainTimeline.to(scene.txt, { opacity: 1, x: 0, duration: 1, ease: "power2.out" }, focusStartTime);
+                mainTimeline.to(scene.frames, { scale: 1, duration: 2, ease: "sine.out" }, focusStartTime);
+                mainTimeline.to(world, { z: "-=20", duration: HOLD, ease: "none" }, focusStartTime); 
+                mainTimeline.to(scene.txt, { opacity: 0, x: -20, duration: 0.8, ease: "power2.in" }, focusStartTime + HOLD - 0.8);
+            });
+
+            mainTimeline.to(world, {
+                x: 0, y: 0, z: -14000, duration: OUTRO, ease: "sine.inOut",
+                onStart: () => {
+                    scenes.forEach(s => gsap.to(s.el, { opacity: 0.05, duration: 2 }));
+                    gsap.to('#intro-collage', { opacity: 1, duration: 8 });
+                }
+            }, journeyTime);
+
+            mainTimeline.to("#final-message", { opacity: 1, pointerEvents: 'auto', duration: 8 }, journeyTime + 2);
+        }
+
+        function togglePlayPause() {
+            if (!mainTimeline) return;
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            if (mainTimeline.paused()) {
+                mainTimeline.play(); audio.play();
+                playIcon.style.display = 'none'; pauseIcon.style.display = 'block';
+            } else {
+                mainTimeline.pause(); audio.pause();
+                playIcon.style.display = 'block'; pauseIcon.style.display = 'none';
+            }
+        }
+
+        function updateProgressBar() {
+            if (!mainTimeline) return;
+            const progress = mainTimeline.progress();
+            document.getElementById('progress-bar').style.width = (progress * 100) + '%';
+            const currentSecs = Math.floor(mainTimeline.time());
+            const mins = Math.floor(currentSecs / 60);
+            const secs = String(currentSecs % 60).padStart(2, '0');
+            document.getElementById('current-time').innerText = `${mins}:${secs}`;
+        }
+
+        function syncAudio() {
+            if (!mainTimeline || Math.abs(audio.currentTime - mainTimeline.time()) < 0.5) return;
+            audio.currentTime = mainTimeline.time();
+        }
+
+        function seek(event) {
+            if (!mainTimeline) return;
+            const container = document.getElementById('progress-container');
+            const rect = container.getBoundingClientRect();
+            const pos = (event.clientX - rect.left) / rect.width;
+            const targetTime = pos * totalDuration;
+            mainTimeline.time(targetTime); audio.currentTime = targetTime;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
