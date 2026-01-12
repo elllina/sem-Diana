@@ -305,9 +305,58 @@
             opacity: 0.12;
             pointer-events: none;
         }
+
+        #record-btn svg {
+            color: #c0392b;
+        }
+
+        #record-btn.recording {
+            animation: pulse-record 1s infinite;
+        }
+
+        #record-btn.recording svg {
+            color: #e74c3c;
+        }
+
+        @keyframes pulse-record {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #recording-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 3000;
+        }
+
+        #recording-indicator::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="recording-indicator">REC</div>
 
     <div id="ui-overlay">
         <div class="text-center px-6">
@@ -326,6 +375,10 @@
         <button id="play-pause-btn" class="control-btn" onclick="togglePlayPause()">
             <svg id="play-icon" style="display:none;" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button id="record-btn" class="control-btn" onclick="toggleRecording()" title="Record video">
+            <svg id="record-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+            <svg id="stop-record-icon" style="display:none;" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
         </button>
         <div id="progress-container" onclick="seek(event)">
             <div id="progress-bar"></div>
@@ -580,6 +633,127 @@
             const pos = (event.clientX - rect.left) / rect.width;
             const targetTime = pos * totalDuration;
             mainTimeline.time(targetTime); audio.currentTime = targetTime;
+        }
+
+        // Recording functionality
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                // Capture the screen with audio
+                const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        mediaSource: 'screen',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: true
+                });
+
+                // Create audio context to mix tab audio
+                const audioContext = new AudioContext();
+                const destination = audioContext.createMediaStreamDestination();
+
+                // Add display audio if available
+                if (displayStream.getAudioTracks().length > 0) {
+                    const displayAudio = audioContext.createMediaStreamSource(displayStream);
+                    displayAudio.connect(destination);
+                }
+
+                // Combine video and mixed audio
+                const combinedStream = new MediaStream([
+                    ...displayStream.getVideoTracks(),
+                    ...destination.stream.getAudioTracks()
+                ]);
+
+                // Try MP4 first, fallback to WebM
+                const mimeType = MediaRecorder.isTypeSupported('video/mp4')
+                    ? 'video/mp4'
+                    : 'video/webm;codecs=vp9';
+
+                mediaRecorder = new MediaRecorder(combinedStream, {
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 8000000
+                });
+
+                recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const mimeType = mediaRecorder.mimeType;
+                    const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+
+                    // Download the recording
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `presentation-recording.${extension}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    // Cleanup
+                    displayStream.getTracks().forEach(track => track.stop());
+                };
+
+                // Handle when user stops sharing
+                displayStream.getVideoTracks()[0].onended = () => {
+                    if (isRecording) stopRecording();
+                };
+
+                mediaRecorder.start(1000); // Collect data every second
+                isRecording = true;
+                updateRecordingUI(true);
+
+            } catch (err) {
+                console.error('Recording failed:', err);
+                alert('Could not start recording. Please allow screen sharing when prompted.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            updateRecordingUI(false);
+        }
+
+        function updateRecordingUI(recording) {
+            const recordBtn = document.getElementById('record-btn');
+            const recordIcon = document.getElementById('record-icon');
+            const stopRecordIcon = document.getElementById('stop-record-icon');
+            const indicator = document.getElementById('recording-indicator');
+
+            if (recording) {
+                recordBtn.classList.add('recording');
+                recordIcon.style.display = 'none';
+                stopRecordIcon.style.display = 'block';
+                indicator.style.display = 'flex';
+            } else {
+                recordBtn.classList.remove('recording');
+                recordIcon.style.display = 'block';
+                stopRecordIcon.style.display = 'none';
+                indicator.style.display = 'none';
+            }
         }
 
         window.onload = init;
